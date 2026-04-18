@@ -1,0 +1,220 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Calendar, Globe, Languages, ExternalLink, Loader2, AlertCircle, Server } from 'lucide-react';
+
+const App = () => {
+  const [backendUrl, setBackendUrl] = useState('');
+  const [query, setQuery] = useState('');
+  const [lang, setLang] = useState('ta');
+  const [country, setCountry] = useState('IN');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!backendUrl) {
+      setError("தயவுசெய்து Backend URL-ஐ உள்ளிடவும் bro!");
+      return;
+    }
+    if (!query) {
+      setError("தேடல் சொல்லை உள்ளிடவும் bro!");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResults([]);
+
+    const cleanUrl = backendUrl.replace(/\/$/, "");
+    const startIso = startDate ? `${startDate}T00:00:00Z` : "";
+    const endIso = endDate ? `${endDate}T23:59:59Z` : "";
+
+    const params = new URLSearchParams({
+      q: query,
+      lang: lang,
+      country: country,
+      after: startIso,
+      before: endIso
+    });
+
+    try {
+      const response = await fetch(`${cleanUrl}/search?${params.toString()}`);
+      if (!response.ok) throw new Error("Backend இணைப்பில் சிக்கல் உள்ளது. URL சரியாக உள்ளதா?");
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setResults(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="bg-red-600 p-2 rounded-lg">
+            <Search className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">YouTube History Finder <span className="text-red-500">Bro</span></h1>
+        </div>
+
+        {/* Configuration Panel */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8 shadow-xl">
+          <div className="flex items-center gap-2 mb-4 text-zinc-400">
+            <Server className="w-4 h-4" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider">Backend Configuration</h2>
+          </div>
+          <input
+            type="text"
+            placeholder="உதாரணம்: https://shaggy-pets-run.loca.lt"
+            value={backendUrl}
+            onChange={(e) => setBackendUrl(e.target.value)}
+            className="w-full bg-black border border-zinc-700 rounded-lg p-3 text-green-400 font-mono text-sm focus:border-red-500 outline-none transition-all"
+          />
+          <p className="text-xs text-zinc-500 mt-2">* Colab-ல் கிடைத்த Tunnel URL-ஐ இங்கே வழங்கவும்.</p>
+        </div>
+
+        {/* Search Controls */}
+        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 bg-zinc-900 p-6 rounded-xl border border-zinc-800">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase">தேடல் (Topic)</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="எ.கா: Tamil News 2012"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-red-500 outline-none"
+              />
+              <Search className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase">மொழி (Language)</label>
+            <div className="relative">
+              <select 
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 pl-10 appearance-none focus:ring-2 focus:ring-red-500 outline-none"
+              >
+                <option value="ta">Tamil</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+              </select>
+              <Languages className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase">நாடு (Country)</label>
+            <div className="relative">
+              <select 
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 pl-10 appearance-none focus:ring-2 focus:ring-red-500 outline-none"
+              >
+                <option value="IN">India</option>
+                <option value="US">USA</option>
+                <option value="LK">Sri Lanka</option>
+              </select>
+              <Globe className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase">தேதி முதல் (From)</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-red-500 outline-none"
+              />
+              <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase">தேதி வரை (To)</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-red-500 outline-none"
+              />
+              <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
+            </div>
+          </div>
+
+          <div className="md:col-span-4 mt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-bold p-4 rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "FIND VIDEOS"}
+            </button>
+          </div>
+        </form>
+
+        {/* Feedback Messages */}
+        {error && (
+          <div className="flex items-center gap-2 p-4 bg-red-900/20 border border-red-900/50 text-red-400 rounded-lg mb-8">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Results Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {results.map((video) => (
+            <div key={video.id} className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-red-500/50 transition-all shadow-lg">
+              <div className="relative aspect-video">
+                <img 
+                  src={video.thumbnail} 
+                  alt={video.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute bottom-2 right-2 bg-black/80 text-[10px] px-2 py-1 rounded font-bold">
+                  {new Date(video.publishedAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-red-400 transition-colors">
+                  {video.title}
+                </h3>
+                <p className="text-xs text-zinc-500 mb-4">{video.channel}</p>
+                <a
+                  href={`https://www.youtube.com/watch?v=${video.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-md text-xs font-bold transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" /> WATCH ON YOUTUBE
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {!loading && results.length === 0 && !error && (
+          <div className="text-center py-20 bg-zinc-900/50 border border-dashed border-zinc-800 rounded-xl">
+            <p className="text-zinc-500">தேடல் முடிவுகள் இங்கே தோன்றும் bro!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
